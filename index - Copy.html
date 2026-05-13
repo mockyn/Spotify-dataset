@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Distribución de Sueldos - Rango Ampliado</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background-color: #f8f9fa; color: #2d3748; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
+        h2 { text-align: center; margin-bottom: 25px; color: #1a202c; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .control-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 10px; color: #475569; }
+        input[type=range] { cursor: pointer; width: 100%; }
+        #chart-container { position: relative; width: 100%; height: 380px; }
+        
+        /* Estilo para los números del eje X (Fuente grande y clara) */
+        .tick text {
+            font-size: 17px !important; 
+            font-weight: 600;
+            fill: #334155;
+        }
+
+        .metrics { display: flex; justify-content: space-around; margin-top: 10px; padding-top: 25px; border-top: 1px solid #e2e8f0; text-align: center; }
+        .metric-title { font-size: 0.85em; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+        .metric-value { font-size: 1.3em; font-weight: 700; color: #0f172a; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Distribución de Sueldos (Rango 0 - 1.6M)</h2>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label id="label-mean">Media (x̄): $900.000</label>
+            <input type="range" id="mean" min="500000" max="1300000" step="10000" value="900000">
+        </div>
+        <div class="control-group">
+            <label id="label-std">Desviación Estándar (σ): $50.000</label>
+            <input type="range" id="std" min="0" max="250000" step="5000" value="50000">
+        </div>
+    </div>
+
+    <div id="chart-container"></div>
+
+    <div class="metrics">
+        <div>
+            <div class="metric-title">Varianza (σ²)</div>
+            <div class="metric-value" id="var-val">2.500.000.000</div>
+        </div>
+        <div>
+            <div class="metric-title">Coef. Variación (CV)</div>
+            <div class="metric-value" id="cv-val">5.56%</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Semilla para estabilidad visual
+    let currentSeed = 12345;
+    function seededRandom() {
+        currentSeed = (currentSeed * 9301 + 49297) % 233280;
+        return currentSeed / 233280;
+    }
+
+    const numTrabajadores = 50;
+    const zScores = [];
+    for (let i = 0; i < numTrabajadores; i++) {
+        let u = 0, v = 0;
+        while (u === 0) u = seededRandom();
+        while (v === 0) v = seededRandom();
+        let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        zScores.push(z);
+    }
+
+    const width = document.getElementById('chart-container').clientWidth;
+    const height = 380;
+    const margin = { top: 20, right: 40, bottom: 60, left: 60 };
+    const innerHeight = height - margin.top - margin.bottom;
+    const centerY = innerHeight / 2 + margin.top;
+
+    const svg = d3.select("#chart-container").append("svg").attr("width", width).attr("height", height);
+    
+    // CAMBIO CLAVE: Nueva escala de 0 a 1.600.000
+    const xScale = d3.scaleLinear().domain([0, 1600000]).range([margin.left, width - margin.right]);
+
+    const xAxisGenerator = d3.axisBottom(xScale)
+        .ticks(8)
+        .tickFormat(d => "$" + d.toLocaleString('es-CL'));
+
+    svg.append("g")
+        .attr("transform", `translate(0, ${height - margin.bottom})`)
+        .attr("class", "x-axis")
+        .call(xAxisGenerator);
+
+    const meanLine = svg.append("line")
+        .attr("y1", margin.top).attr("y2", height - margin.bottom)
+        .attr("stroke", "#ef4444").attr("stroke-width", 3).attr("stroke-dasharray", "5,5");
+
+    const nodes = zScores.map((z, id) => ({ id, z, x: width/2, y: centerY }));
+    const circles = svg.selectAll("circle").data(nodes).enter().append("circle")
+        .attr("r", 7.5).attr("fill", "#6366f1").attr("opacity", 0.85).attr("stroke", "#fff").attr("stroke-width", 1.2);
+
+    function update() {
+        const mean = parseFloat(document.getElementById('mean').value);
+        const std = parseFloat(document.getElementById('std').value);
+
+        document.getElementById('label-mean').innerText = `Media (x̄): $${mean.toLocaleString('es-CL')}`;
+        document.getElementById('label-std').innerText = `Desviación Estándar (σ): $${std.toLocaleString('es-CL')}`;
+        
+        const variance = Math.pow(std, 2);
+        const cv = mean !== 0 ? (std / mean) * 100 : 0;
+        document.getElementById('var-val').innerText = variance.toLocaleString('es-CL');
+        document.getElementById('cv-val').innerText = cv.toFixed(2) + "%";
+
+        meanLine.transition().duration(100).attr("x1", xScale(mean)).attr("x2", xScale(mean));
+
+        nodes.forEach(node => {
+            node.targetX = xScale(mean + node.z * std);
+        });
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("x", d3.forceX(d => d.targetX).strength(1))
+            .force("y", d3.forceY(centerY).strength(0.12))
+            .force("collide", d3.forceCollide(8.5)) 
+            .stop();
+
+        for (let i = 0; i < 80; i++) simulation.tick();
+
+        circles.transition().duration(120)
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+    }
+
+    document.getElementById('mean').addEventListener('input', update);
+    document.getElementById('std').addEventListener('input', update);
+    update();
+</script>
+</body>
+</html>
