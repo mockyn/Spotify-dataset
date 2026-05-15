@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fichas Bicolores — Números Enteros</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #f8f6f1;
+    --surface: #ffffff;
+    --border: #e0dcd4;
+    --text: #1a1814;
+    --text-soft: #8a8070;
+    --green: #2d7a4f;
+    --green-light: #e8f5ee;
+    --green-chip: #3a9e65;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --red-chip: #e05444;
+    --radius: 12px;
+    --chip: 52px;
+    --gap: 8px;
+    --pad: 10px;
+    --ptop: 34px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 48px;
+  }
+
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 1.9rem;
+    letter-spacing: -0.02em;
+  }
+  header h1 em { font-style: italic; font-weight: 600; }
+  header p {
+    color: var(--text-soft);
+    font-size: 0.7rem;
+    margin-top: 3px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .main-layout {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ── COUNTER BAR ── */
+  .counter-bar {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+  }
+  .counter-left { display: flex; flex-direction: column; gap: 5px; }
+  .counter-label { font-size: 0.65rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.1em; }
+  .chip-counts { display: flex; gap: 10px; font-size: 0.75rem; flex-wrap: wrap; }
+  .chip-count-green { color: var(--green); }
+  .chip-count-red   { color: var(--red); }
+
+  .null-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff8e7;
+    border: 1.5px solid #e8c84a;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.68rem;
+    color: #8a6200;
+    transition: opacity 0.3s;
+  }
+  .null-badge.dim { opacity: 0.3; }
+
+  .counter-center { text-align: center; }
+  .expr {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: all 0.3s ease;
+    display: inline-block;
+    min-width: 180px;
+  }
+  .expr.positive { color: var(--green); }
+  .expr.negative { color: var(--red); }
+  .expr.zero     { color: var(--text-soft); }
+  .expr.blurred  { filter: blur(7px); user-select: none; cursor: not-allowed; }
+
+  .counter-right { display: flex; justify-content: flex-end; }
+  .btn-hide {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    color: var(--text-soft);
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+  }
+  .btn-hide:hover { background: var(--border); color: var(--text); }
+  .btn-hide.on { background: var(--text); color: white; border-color: var(--text); }
+
+  /* ── CONTROLS ── */
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sep { width: 1px; height: 28px; background: var(--border); margin: 0 2px; }
+
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 9px 15px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-green  { background: var(--green-light); color: var(--green); border: 1.5px solid var(--green); }
+  .btn-green:hover { background: var(--green); color: white; }
+  .btn-red    { background: var(--red-light); color: var(--red); border: 1.5px solid var(--red); }
+  .btn-red:hover { background: var(--red); color: white; }
+  .btn-annul  { background: #fff8e7; color: #b07d00; border: 1.5px solid #e8c84a; }
+  .btn-annul:hover { background: #e8c84a; color: #1a1814; }
+  .btn-mode   { background: #f0eee8; color: var(--text); border: 1.5px solid var(--border); }
+  .btn-mode:hover { background: #e8e4dc; }
+  .btn-mode.on { background: #1a1814; color: white; border-color: #1a1814; }
+  .btn-sub    { background: #f0eaf8; color: #7b3fa0; border: 1.5px solid #c084e0; }
+  .btn-sub:hover { background: #c084e0; color: white; }
+  .btn-sub.on { background: #7b3fa0; color: white; border-color: #7b3fa0; }
+  .btn-clear  { background: #f0eee8; color: var(--text-soft); border: 1.5px solid var(--border); margin-left: auto; }
+  .btn-clear:hover { background: #e8e4dc; color: var(--text); }
+
+  /* ── CANVAS SPLIT ── */
+  .canvas-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 380px;
+    position: relative;
+    overflow: hidden;
+  }
+  .canvas-wrap.sel-mode { cursor: crosshair; }
+  .canvas-wrap.sub-mode { cursor: none; }
+
+  .zone {
+    position: relative;
+    min-height: 380px;
+    overflow: hidden;
+  }
+  .zone-green { border-right: 1.5px dashed #c5e0d0; }
+
+  /* dot grid */
+  .zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, #d0ccc4 1px, transparent 1px);
+    background-size: calc(var(--chip) + var(--gap)) calc(var(--chip) + var(--gap));
+    background-position: var(--pad) var(--ptop);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .zone-label {
+    position: absolute;
+    top: 9px; left: 0; right: 0;
+    text-align: center;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+  }
+  .zone-green .zone-label { color: var(--green); }
+  .zone-red   .zone-label { color: var(--red); }
+
+  .mode-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: #1a1814;
+    color: white;
+    font-size: 0.6rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .mode-badge.vis     { opacity: 1; }
+  .mode-badge.sub-clr { background: #7b3fa0; }
+
+  .sel-rect {
+    position: absolute;
+    border: 2px dashed #1a1814;
+    background: rgba(26,24,20,0.05);
+    pointer-events: none;
+    border-radius: 4px;
+    display: none;
+    z-index: 40;
+  }
+
+  .empty-hint {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--border);
+    font-size: 0.7rem;
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    line-height: 2.2;
+    z-index: 0;
+  }
+
+  /* ── CHIP ── */
+  .chip {
+    position: absolute;
+    width: var(--chip);
+    height: var(--chip);
+    border-radius: 50%;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    user-select: none;
+    border: 3px solid transparent;
+    z-index: 2;
+    transition: box-shadow 0.15s, transform 0.15s, left 0.2s ease, top 0.2s ease;
+  }
+  .chip:active { cursor: grabbing; }
+  .chip.green { background: var(--green-chip); color: white; border-color: var(--green); box-shadow: 0 3px 10px rgba(45,122,79,0.25); }
+  .chip.red   { background: var(--red-chip);   color: white; border-color: var(--red);   box-shadow: 0 3px 10px rgba(192,57,43,0.25); }
+  .chip:hover:not(.dragging) { transform: scale(1.08); z-index: 10; }
+  .chip.dragging {
+    opacity: 0.78;
+    transform: scale(1.12) !important;
+    z-index: 1000;
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .chip.selected  { border-color: #1a1814 !important; box-shadow: 0 0 0 3px rgba(26,24,20,0.2) !important; }
+  .chip.sub-hover { border-color: #7b3fa0 !important; box-shadow: 0 0 0 3px rgba(123,63,160,0.3) !important; transform: scale(1.06); }
+  .chip.annulling { animation: annul 0.55s ease forwards; transition: none !important; }
+  .chip.flicker   { animation: flicker 0.4s ease; }
+  .chip.snap-in   { animation: snapIn 0.22s ease; }
+
+  @keyframes annul  { 0%{transform:scale(1);opacity:1}25%{transform:scale(1.2);opacity:.9}50%{transform:scale(.85);opacity:.7}75%{transform:scale(1.1);opacity:.4}100%{transform:scale(0);opacity:0} }
+  @keyframes flicker{ 0%,100%{opacity:1}25%{opacity:.3}50%{opacity:1}75%{opacity:.3} }
+  @keyframes snapIn { 0%{transform:scale(1.18)}60%{transform:scale(.93)}100%{transform:scale(1)} }
+
+  /* Subtract cursor */
+  .sub-cursor {
+    position: fixed;
+    font-size: 1.5rem;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-6px, -6px);
+    display: none;
+  }
+
+  /* ── BOTTOM ── */
+  .bottom { display: grid; grid-template-columns: 1fr 290px; gap: 14px; }
+
+  .legend {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  .leg-item { display: flex; align-items: center; gap: 7px; font-size: 0.67rem; color: var(--text-soft); letter-spacing: 0.04em; }
+  .leg-chip { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: white; }
+  .leg-chip.green { background: var(--green-chip); }
+  .leg-chip.red   { background: var(--red-chip); }
+
+  /* ── HISTORY ── */
+  .history {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 13px;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 160px; overflow: hidden;
+  }
+  .history-title {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-soft); border-bottom: 1px solid var(--border); padding-bottom: 5px; flex-shrink: 0;
+  }
+  .history-scroll { overflow-y: auto; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .history-scroll::-webkit-scrollbar { width: 3px; }
+  .history-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .hentry {
+    font-size: 0.66rem; color: var(--text-soft);
+    border-left: 2px solid var(--border); padding-left: 8px;
+    animation: hslide 0.22s ease; line-height: 1.45;
+  }
+  .hentry.hg { border-left-color: var(--green); color: var(--green); }
+  .hentry.hr { border-left-color: var(--red);   color: var(--red); }
+  .hentry.ha { border-left-color: #e8c84a; color: #8a6200; }
+  .hentry.hx { border-left-color: #7b3fa0; color: #7b3fa0; }
+  .hempty { font-size: 0.64rem; color: var(--border); font-style: italic; padding-left: 8px; }
+  @keyframes hslide { from{opacity:0;transform:translateX(-5px)} to{opacity:1;transform:none} }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 22px; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #1a1814; color: white;
+    padding: 9px 18px; border-radius: 8px;
+    font-size: 0.75rem; letter-spacing: 0.04em;
+    transition: transform 0.3s; pointer-events: none; z-index: 9999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width:620px) {
+    .canvas-wrap { grid-template-columns:1fr; }
+    .zone-green  { border-right:none; border-bottom:1.5px dashed #c5e0d0; }
+    .bottom      { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fichas <em>Bicolores</em></h1>
+  <p>Adición y sustracción de números enteros · 7° Básico</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- COUNTER BAR -->
+  <div class="counter-bar">
+    <div class="counter-left">
+      <span class="counter-label">Fichas en tablero</span>
+      <div class="chip-counts">
+        <span class="chip-count-green" id="cGreen">● 0 verdes</span>
+        <span class="chip-count-red"   id="cRed">● 0 rojas</span>
+      </div>
+      <div class="null-badge dim" id="nullBadge">
+        ⊕ <span id="nullN">0</span> par(es) nulo(s) → resultado anticipado: <strong id="nullPrev">0</strong>
+      </div>
+    </div>
+
+    <div class="counter-center">
+      <span class="expr zero" id="expr">0</span>
+    </div>
+
+    <div class="counter-right">
+      <button class="btn-hide" id="btnHide" onclick="toggleHide()">👁 Ocultar resultado</button>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn btn-green"  onclick="addChip('green')">● + Ficha Verde (+1)</button>
+    <button class="btn btn-red"    onclick="addChip('red')">● + Ficha Roja (−1)</button>
+    <div class="sep"></div>
+    <button class="btn btn-annul"  onclick="annulPairs()">⊕ Anular pares</button>
+    <button class="btn btn-sub"    id="btnSub"    onclick="toggleSub()">✋ Sustraer</button>
+    <button class="btn btn-mode"   id="btnSel"    onclick="toggleSel()">⊡ Seleccionar</button>
+    <button class="btn btn-clear"  onclick="clearBoard()">✕ Limpiar</button>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap" id="cw">
+    <div class="mode-badge" id="modeBadge"></div>
+    <div class="sel-rect"   id="selRect"></div>
+
+    <div class="zone zone-green" id="zG">
+      <div class="zone-label">Haber (+)</div>
+    </div>
+    <div class="zone zone-red" id="zR">
+      <div class="zone-label">Deuda (−)</div>
+    </div>
+
+    <div class="empty-hint" id="hint">
+      Añade fichas para comenzar<br>
+      ● verde = +1 &nbsp;|&nbsp; ● roja = −1
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <div class="legend">
+      <div class="leg-item"><div class="leg-chip green">+</div><span>Verde = +1 (saldo)</span></div>
+      <div class="leg-item"><div class="leg-chip red">−</div><span>Roja = −1 (deuda)</span></div>
+      <div class="leg-item" style="color:#8a6200"><span>⊕</span><span>Par nulo = 0</span></div>
+      <div class="leg-item" style="color:#7b3fa0"><span>✋</span><span>Sustraer = quitar ficha</span></div>
+    </div>
+    <div class="history">
+      <div class="history-title">📋 Historial</div>
+      <div class="history-scroll" id="hist"><span class="hempty">Sin acciones aún…</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="sub-cursor" id="subCursor">✋</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DOM ──
+const cw         = document.getElementById('cw');
+const zG         = document.getElementById('zG');
+const zR         = document.getElementById('zR');
+const exprEl     = document.getElementById('expr');
+const cGreenEl   = document.getElementById('cGreen');
+const cRedEl     = document.getElementById('cRed');
+const nullBadge  = document.getElementById('nullBadge');
+const nullNEl    = document.getElementById('nullN');
+const nullPrevEl = document.getElementById('nullPrev');
+const hintEl     = document.getElementById('hint');
+const modeBadge  = document.getElementById('modeBadge');
+const btnSub     = document.getElementById('btnSub');
+const btnSel     = document.getElementById('btnSel');
+const btnHide    = document.getElementById('btnHide');
+const selRect    = document.getElementById('selRect');
+const subCursor  = document.getElementById('subCursor');
+const histEl     = document.getElementById('hist');
+
+// ── State ──
+let chips = [], idN = 0;
+let selMode = false, subMode = false, hidden = false;
+
+// Grid constants
+const CHIP = 52, GAP = 8, PAD = 10, PTOP = 34, CELL = CHIP + GAP;
+
+// Drag
+let drag = null, dOX = 0, dOY = 0;
+// Selection
+let isSel = false, s0 = null, s1 = null;
+
+// ── Zone helpers ──
+const zone = t => t === 'green' ? zG : zR;
+const zRect= t => zone(t).getBoundingClientRect();
+const cols = t => Math.max(1, Math.floor((zone(t).offsetWidth - PAD*2 + GAP) / CELL));
+
+function slotPx(col, row) { return { x: PAD + col*CELL, y: PTOP + row*CELL }; }
+
+function freeSlot(type) {
+  const used = chips.filter(c=>c.type===type).map(c=>`${c.col},${c.row}`);
+  const nc = cols(type);
+  for (let r=0;;r++) for (let c=0;c<nc;c++) if (!used.includes(`${c},${r}`)) return {col:c,row:r};
+}
+
+function nearSlot(type, px, py) {
+  const nc = cols(type);
+  let best = Infinity, bc=0, br=0;
+  for (let r=0;r<12;r++) for (let c=0;c<nc;c++) {
+    const p = slotPx(c,r);
+    const d = Math.hypot(px-p.x, py-p.y);
+    if (d < best) { best=d; bc=c; br=r; }
+  }
+  return {col:bc, row:br};
+}
+
+// ── Add chip ──
+function addChip(type) {
+  const sl = freeSlot(type);
+  const px = slotPx(sl.col, sl.row);
+  _mk(type, sl.col, sl.row, px.x, px.y);
+  updateCounter();
+  log(`Se añadió 1 ficha ${type==='green'?'verde (+1)':'roja (−1)'}`, type==='green'?'hg':'hr');
+}
+
+function _mk(type, col, row, x, y) {
+  const id = ++idN;
+  const el = document.createElement('div');
+  el.className = `chip ${type} snap-in`;
+  el.textContent = type==='green' ? '+' : '−';
+  el.style.left = x+'px'; el.style.top = y+'px';
+  el.dataset.id = id; el.dataset.type = type;
+  el.addEventListener('mousedown',  onMD);
+  el.addEventListener('touchstart', onTS, {passive:false});
+  el.addEventListener('mouseenter', onEnterSub);
+  el.addEventListener('mouseleave', onLeaveSub);
+  el.addEventListener('click',      onClickSub);
+  zone(type).appendChild(el);
+  const chip = {id, type, el, col, row, x, y};
+  chips.push(chip);
+  hintEl.style.opacity = '0';
+  setTimeout(()=>el.classList.remove('snap-in'), 260);
+  return chip;
+}
+
+// ── Drag ──
+function onMD(e) {
+  if (selMode||subMode) return;
+  e.stopPropagation();
+  _startDrag(e.currentTarget, e.clientX, e.clientY);
+}
+function onTS(e) {
+  if (selMode||subMode) return;
+  e.preventDefault(); e.stopPropagation();
+  _startDrag(e.currentTarget, e.touches[0].clientX, e.touches[0].clientY);
+}
+function _startDrag(el, cx, cy) {
+  const chip = chips.find(c=>c.el===el); if (!chip) return;
+  const zr = zRect(chip.type);
+  drag=chip; dOX=cx-zr.left-chip.x; dOY=cy-zr.top-chip.y;
+  el.classList.add('dragging');
+}
+document.addEventListener('mousemove', e=>{ if (!drag) return; _mvDrag(e.clientX, e.clientY); });
+document.addEventListener('touchmove', e=>{ if (!drag) return; _mvDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+function _mvDrag(cx,cy) {
+  const zr = zRect(drag.type);
+  let nx = Math.max(0, Math.min(zr.width-CHIP,  cx-zr.left-dOX));
+  let ny = Math.max(0, Math.min(zr.height-CHIP, cy-zr.top-dOY));
+  drag.x=nx; drag.y=ny;
+  drag.el.style.left=nx+'px'; drag.el.style.top=ny+'px';
+}
+document.addEventListener('mouseup',  _endDrag);
+document.addEventListener('touchend', _endDrag);
+function _endDrag() {
+  if (!drag) return;
+  drag.el.classList.remove('dragging');
+  _snap(drag);
+  _checkAnnul(drag);
+  drag=null;
+}
+function _snap(chip) {
+  const sl = nearSlot(chip.type, chip.x, chip.y);
+  const taken = chips.find(c=>c!==chip && c.type===chip.type && c.col===sl.col && c.row===sl.row);
+  const fin = taken ? freeSlot(chip.type) : sl;
+  const px  = slotPx(fin.col, fin.row);
+  chip.col=fin.col; chip.row=fin.row; chip.x=px.x; chip.y=px.y;
+  chip.el.style.left=px.x+'px'; chip.el.style.top=px.y+'px';
+}
+
+// ── Annul on drop ──
+function _checkAnnul(chip) {
+  const THRESH = 58;
+  const opp = chip.type==='green'?'red':'green';
+  const ar = cw.getBoundingClientRect();
+  const zrA = zRect(chip.type);
+  const cx = zrA.left-ar.left + chip.x+26;
+  const cy = zrA.top -ar.top  + chip.y+26;
+  for (const t of chips) {
+    if (t===chip||t.type!==opp) continue;
+    const zrB = zRect(t.type);
+    const tx = zrB.left-ar.left + t.x+26;
+    const ty = zrB.top -ar.top  + t.y+26;
+    if (Math.hypot(cx-tx,cy-ty)<THRESH) { _annulTwo(chip,t); return; }
+  }
+  updateCounter();
+}
+
+function _annulTwo(a,b) {
+  a.el.classList.add('annulling'); b.el.classList.add('annulling');
+  showToast('¡Par anulado! (+1)+(−1)=0');
+  log('Par nulo anulado: (+1)+(−1)=0','ha');
+  setTimeout(()=>{ _rm(a);_rm(b); updateCounter(); },560);
+}
+function _rm(chip) {
+  if (chip.el.parentNode) chip.el.parentNode.removeChild(chip.el);
+  chips = chips.filter(c=>c!==chip);
+}
+
+// ── Annul all pairs ──
+function annulPairs() {
+  const gs = chips.filter(c=>c.type==='green');
+  const rs = chips.filter(c=>c.type==='red');
+  const n  = Math.min(gs.length, rs.length);
+  if (!n) { showToast('No hay pares que anular'); return; }
+  for (let i=0;i<n;i++) { gs[i].el.classList.add('flicker'); rs[i].el.classList.add('flicker'); }
+  setTimeout(()=>{
+    for (let i=0;i<n;i++) { gs[i].el.classList.replace('flicker','annulling'); rs[i].el.classList.replace('flicker','annulling'); }
+    setTimeout(()=>{
+      for (let i=0;i<n;i++) { _rm(gs[i]); _rm(rs[i]); }
+      updateCounter();
+      showToast(`${n} par${n>1?'es':''} anulado${n>1?'s':''}`);
+      log(`${n} par(es) nulo(s) anulado(s)`,'ha');
+    },560);
+  },420);
+}
+
+// ── Subtract mode ──
+function toggleSub() {
+  subMode=!subMode;
+  if (subMode&&selMode) toggleSel();
+  btnSub.classList.toggle('on',subMode);
+  cw.classList.toggle('sub-mode',subMode);
+  subCursor.style.display=subMode?'block':'none';
+  modeBadge.textContent='Modo sustraer';
+  modeBadge.className='mode-badge'+(subMode?' vis sub-clr':'');
+}
+document.addEventListener('mousemove', e=>{
+  if (!subMode) return;
+  subCursor.style.left=e.clientX+'px'; subCursor.style.top=e.clientY+'px';
+});
+function onEnterSub(e) { if (!subMode) return; e.currentTarget.classList.add('sub-hover'); }
+function onLeaveSub(e) { e.currentTarget.classList.remove('sub-hover'); }
+function onClickSub(e) {
+  if (!subMode) return;
+  e.stopPropagation();
+  const chip = chips.find(c=>c.el===e.currentTarget); if (!chip) return;
+  const lbl = chip.type==='green'?'verde (+1)':'roja (−1)';
+  chip.el.classList.add('annulling');
+  setTimeout(()=>{ _rm(chip); updateCounter(); },560);
+  showToast(`Ficha ${lbl} sustraída`);
+  log(`Se sustrajo 1 ficha ${lbl}`,'hx');
+}
+
+// ── Select mode ──
+function toggleSel() {
+  selMode=!selMode;
+  if (selMode&&subMode) toggleSub();
+  btnSel.classList.toggle('on',selMode);
+  cw.classList.toggle('sel-mode',selMode);
+  modeBadge.textContent='Modo seleccionar';
+  modeBadge.className='mode-badge'+(selMode?' vis':'');
+  chips.forEach(c=>c.el.classList.remove('selected'));
+}
+cw.addEventListener('mousedown', e=>{
+  if (!selMode) return;
+  const cr=cw.getBoundingClientRect();
+  isSel=true; s0={x:e.clientX-cr.left, y:e.clientY-cr.top}; s1={...s0};
+  _drawSel();
+});
+document.addEventListener('mousemove', e=>{
+  if (!isSel||!selMode) return;
+  const cr=cw.getBoundingClientRect();
+  s1={x:e.clientX-cr.left, y:e.clientY-cr.top};
+  _drawSel(); _hilightSel();
+});
+document.addEventListener('mouseup', e=>{
+  if (!isSel||!selMode) return;
+  isSel=false; selRect.style.display='none';
+  const sel=chips.filter(c=>c.el.classList.contains('selected'));
+  if (sel.length) {
+    const nG=sel.filter(c=>c.type==='green').length, nR=sel.filter(c=>c.type==='red').length;
+    sel.forEach(c=>c.el.classList.add('annulling'));
+    setTimeout(()=>{
+      sel.forEach(c=>_rm(c)); updateCounter();
+      let m='Se eliminaron: ';
+      if (nG) m+=`${nG} verde(s)`; if (nG&&nR) m+=' y '; if (nR) m+=`${nR} roja(s)`;
+      showToast(`${sel.length} ficha(s) eliminada(s)`); log(m,'hx');
+    },560);
+  }
+  chips.forEach(c=>c.el.classList.remove('selected'));
+});
+function _drawSel() {
+  const x=Math.min(s0.x,s1.x), y=Math.min(s0.y,s1.y);
+  const w=Math.abs(s1.x-s0.x), h=Math.abs(s1.y-s0.y);
+  selRect.style.cssText+=`display:block;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+}
+function _hilightSel() {
+  const ar=cw.getBoundingClientRect();
+  const rx1=Math.min(s0.x,s1.x), ry1=Math.min(s0.y,s1.y);
+  const rx2=Math.max(s0.x,s1.x), ry2=Math.max(s0.y,s1.y);
+  chips.forEach(c=>{
+    const zr=zRect(c.type);
+    const cx=zr.left-ar.left+c.x+26, cy=zr.top-ar.top+c.y+26;
+    c.el.classList.toggle('selected', cx>=rx1&&cx<=rx2&&cy>=ry1&&cy<=ry2);
+  });
+}
+
+// ── Hide result ──
+function toggleHide() {
+  hidden=!hidden;
+  exprEl.classList.toggle('blurred',hidden);
+  btnHide.textContent=hidden?'👁 Mostrar resultado':'👁 Ocultar resultado';
+  btnHide.classList.toggle('on',hidden);
+  log(hidden?'Resultado ocultado (modo desafío)':'Resultado revelado','');
+}
+
+// ── Counter ──
+function updateCounter() {
+  const nG=chips.filter(c=>c.type==='green').length;
+  const nR=chips.filter(c=>c.type==='red').length;
+  const tot=nG-nR, pairs=Math.min(nG,nR);
+  cGreenEl.textContent=`● ${nG} verde${nG!==1?'s':''}`;
+  cRedEl.textContent  =`● ${nR} roja${nR!==1?'s':''}`;
+  // Null badge
+  if (pairs>0) {
+    nullBadge.classList.remove('dim');
+    nullNEl.textContent=pairs;
+    nullPrevEl.textContent=(tot>=0?'+':'')+tot;
+  } else {
+    nullBadge.classList.add('dim');
+    nullNEl.textContent=0; nullPrevEl.textContent='0';
+  }
+  // Expression
+  let expr='';
+  const s=tot>=0?'+':'';
+  if (!nG&&!nR) expr='0';
+  else if (nG&&nR) expr=`(+${nG})+(−${nR})=${s}${tot}`;
+  else if (nG) expr=`+${nG}`;
+  else expr=`−${nR}`;
+  exprEl.textContent=expr;
+  exprEl.className='expr '+(tot>0?'positive':tot<0?'negative':'zero')+(hidden?' blurred':'');
+  hintEl.style.opacity=chips.length?'0':'1';
+}
+
+// ── Clear ──
+function clearBoard() {
+  chips.forEach(c=>{ if (c.el.parentNode) c.el.parentNode.removeChild(c.el); });
+  chips=[]; updateCounter();
+  showToast('Tablero limpiado'); log('Tablero limpiado','');
+}
+
+// ── History ──
+function log(msg, cls) {
+  const empty=histEl.querySelector('.hempty'); if (empty) empty.remove();
+  const d=document.createElement('div');
+  d.className=`hentry ${cls}`;
+  const t=new Date();
+  d.textContent=`[${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}] ${msg}`;
+  histEl.prepend(d);
+  const all=histEl.querySelectorAll('.hentry');
+  if (all.length>20) all[all.length-1].remove();
+}
+
+// ── Toast ──
+let tT;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(tT); tT=setTimeout(()=>t.classList.remove('show'),2300);
+}
+
+updateCounter();
+</script>
+</body>
+</html>
